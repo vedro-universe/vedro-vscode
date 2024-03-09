@@ -1,1 +1,1 @@
-# vedro-vscode-extension
+# Vedro VSCode Extension
