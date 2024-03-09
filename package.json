@@ -1,7 +1,7 @@
 {
   "name": "vedro",
-  "displayName": "Vedro Extension for VSCode",
-  "description": "",
+  "displayName": "Vedro",
+  "description": "Vedro extension for VSCode",
   "icon": "images/vedro-logo.png",
   "version": "0.1.0",
   "publisher": "vedro",
