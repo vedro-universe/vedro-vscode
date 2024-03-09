@@ -9,9 +9,35 @@
   "categories": [
     "Testing"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:**/*.py"
+  ],
   "main": "./out/extension.js",
-  "contributes": {},
+  "contributes": {
+    "configuration": {
+      "title": "Vedro",
+      "properties": {
+        "vedro.runOptions": {
+          "type": "string",
+          "default": "",
+          "description": "Options for `vedro run` command, e.g., `--dry-run`."
+        },
+        "vedro.testRoot": {
+          "type": "string",
+          "default": ".",
+          "description": "Root directory for tests, relative to project root."
+        }
+      }
+    },
+    "testing": {
+      "controllers": [
+        {
+          "id": "vedroTestController",
+          "label": "Vedro Test Controller"
+        }
+      ]
+    }
+  },
   "scripts": {
     "vscode:prepublish": "yarn run compile",
     "compile": "tsc -p ./",
