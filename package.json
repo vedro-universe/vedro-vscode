@@ -2,7 +2,10 @@
   "name": "vedro",
   "displayName": "Vedro Extension for VSCode",
   "description": "",
+  "icon": "images/vedro-logo.png",
   "version": "0.1.0",
+  "publisher": "vedro",
+  "repository": "https://github.com/vedro-universe/vedro-vscode",
   "engines": {
     "vscode": "^1.87.0"
   },
