@@ -17,8 +17,36 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "configuration": {},
-    "testing": {}
+    "commands": [
+      {
+        "command": "vedro.showVersion",
+        "title": "Vedro: Show Version"
+      },
+      {
+        "command": "vedro.showOutput",
+        "title": "Vedro: Show Output"
+      }
+    ],
+    "configuration": {
+      "title": "Vedro",
+      "properties": {
+        "vedro.vedroPath": {
+          "type": "string",
+          "default": "",
+          "description": "Full command to run Vedro (e.g., 'python -m vedro' or '/path/to/vedro'). Leave empty to auto-detect."
+        },
+        "vedro.projectDir": {
+          "type": "string",
+          "default": "",
+          "description": "Project directory for --project-dir argument. Defaults to workspace folder."
+        },
+        "vedro.vedroArgs": {
+          "type": "string",
+          "default": "",
+          "description": "Additional arguments to pass to 'vedro run' (space-separated)."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "yarn run compile",
