@@ -1,16 +1,40 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
 
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "ext" is now active!');
+let outputChannel: vscode.OutputChannel;
 
+export async function activate(context: vscode.ExtensionContext) {
+    outputChannel = vscode.window.createOutputChannel('Vedro');
+    
+    outputChannel.appendLine('Vedro extension is activating...');
+    outputChannel.appendLine(`Activation time: ${new Date().toISOString()}`);
+    
+    // Double-check that vedro.cfg.py exists
+    const vedroConfigFiles = await vscode.workspace.findFiles('**/vedro.cfg.py', '**/node_modules/**', 1);
+    
+    if (vedroConfigFiles.length === 0) {
+        outputChannel.appendLine('WARNING: No vedro.cfg.py found, but extension was activated!');
+        vscode.window.showWarningMessage('Vedro: No vedro.cfg.py found in workspace');
+        return;
+    }
+    
+    const configPath = vedroConfigFiles[0].fsPath;
+    outputChannel.appendLine(`Found vedro.cfg.py at: ${configPath}`);
+    
+    vscode.window.showInformationMessage('Vedro extension activated successfully!');
+    outputChannel.appendLine('Vedro extension activated successfully!');
+    
+    const showOutputCommand = vscode.commands.registerCommand('vedro.showOutput', () => {
+        outputChannel.show();
+    });
+
+    context.subscriptions.push(showOutputCommand);
+    context.subscriptions.push(outputChannel);
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() {
+    if (outputChannel) {
+        outputChannel.appendLine('Vedro extension is deactivating...');
+        outputChannel.dispose();
+    }
+}
