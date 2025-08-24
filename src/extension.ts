@@ -1,32 +1,16 @@
-import vscode from 'vscode';
-import Terminal from './terminal';
-import { TestExplorer } from './testExplorer';
-import { TestRunner } from './testRunner';
+// The module 'vscode' contains the VS Code extensibility API
+// Import the module and reference it with the alias vscode in your code below
+import * as vscode from 'vscode';
 
-export async function activate(context: vscode.ExtensionContext) {
-    const testController = vscode.tests.createTestController('vedroTestController', 'Vedro Test Controller');
-    context.subscriptions.push(testController);
+// This method is called when your extension is activated
+// Your extension is activated the very first time the command is executed
+export function activate(context: vscode.ExtensionContext) {
 
-    const terminal = new Terminal('vedro-runner');
-    const testRunner = new TestRunner(terminal);
+    // Use the console to output diagnostic information (console.log) and errors (console.error)
+    // This line of code will only be executed once when your extension is activated
+    console.log('Congratulations, your extension "ext" is now active!');
 
-    const runHandler = (request: vscode.TestRunRequest, token: vscode.CancellationToken) => {
-        const testRun = testController.createTestRun(request);
-        testRunner.runTests(request, token);
-        testRun.end();
-    };
-    testController.createRunProfile('Run', vscode.TestRunProfileKind.Run, runHandler, !!'isDefault');
-
-    const testExplorer = new TestExplorer(testController);
-
-    for (const document of vscode.workspace.textDocuments) {
-        await testExplorer.discoverTests(document.uri);
-    }
-
-    context.subscriptions.push(
-        vscode.workspace.onDidOpenTextDocument(document => testExplorer.discoverTests(document.uri)),
-        vscode.workspace.onDidChangeTextDocument(e => testExplorer.discoverTests(e.document.uri)),
-    );
 }
 
-export async function deactivate() {}
+// This method is called when your extension is deactivated
+export function deactivate() {}

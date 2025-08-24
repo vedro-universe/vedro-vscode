@@ -3,61 +3,40 @@
   "displayName": "Vedro",
   "description": "Vedro extension for VSCode",
   "icon": "images/vedro-logo.png",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "vedro",
   "repository": "https://github.com/vedro-universe/vedro-vscode",
   "engines": {
-    "vscode": "^1.87.0"
+    "vscode": "^1.103.0"
   },
   "categories": [
     "Testing"
   ],
   "activationEvents": [
-    "workspaceContains:**/*.py"
+    "workspaceContains:**/vedro.cfg.py"
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "configuration": {
-      "title": "Vedro",
-      "properties": {
-        "vedro.runOptions": {
-          "type": "string",
-          "default": "",
-          "description": "Options for `vedro run` command, e.g., `--dry-run`."
-        },
-        "vedro.testRoot": {
-          "type": "string",
-          "default": ".",
-          "description": "Root directory for tests, relative to project root."
-        }
-      }
-    },
-    "testing": {
-      "controllers": [
-        {
-          "id": "vedroTestController",
-          "label": "Vedro Test Controller"
-        }
-      ]
-    }
+    "configuration": {},
+    "testing": {}
   },
   "scripts": {
     "vscode:prepublish": "yarn run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "yarn run compile && yarn run lint",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src",
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.87.0",
-    "@types/mocha": "^10.0.6",
-    "@types/node": "18.x",
-    "@typescript-eslint/eslint-plugin": "^7.0.2",
-    "@typescript-eslint/parser": "^7.0.2",
-    "eslint": "^8.56.0",
-    "typescript": "^5.3.3",
-    "@vscode/test-cli": "^0.0.6",
-    "@vscode/test-electron": "^2.3.9"
+    "@types/vscode": "^1.103.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@typescript-eslint/eslint-plugin": "^8.39.0",
+    "@typescript-eslint/parser": "^8.39.0",
+    "eslint": "^9.32.0",
+    "typescript": "^5.9.2",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
   }
 }
