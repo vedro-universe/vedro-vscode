@@ -25,6 +25,10 @@
       {
         "command": "vedro.showOutput",
         "title": "Vedro: Show Output"
+      },
+      {
+        "command": "vedro.discoverTests",
+        "title": "Vedro: Discover Tests"
       }
     ],
     "configuration": {

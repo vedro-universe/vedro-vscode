@@ -7,13 +7,13 @@ export interface CommandResult {
     error?: Error;
 }
 
-export function runCommand(command: string, cwd?: string): Promise<CommandResult> {
+export function runCommand(command: string, cwd?: string, timeoutMs: number = 30000): Promise<CommandResult> {
     return new Promise((resolve) => {
         exec(
             command,
             { 
                 cwd: cwd || process.cwd(),
-                timeout: 5000 // 5 second timeout
+                timeout: timeoutMs
             },
             (error, stdout, stderr) => {
                 resolve({

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { runCommand } from './commandRunner';
 import { Logger } from './logger';
 import { VedroConfig } from './vedroConfig';
+import { runCommand } from './commandRunner';
 
 export class VedroDetector {
     constructor(
@@ -14,7 +14,7 @@ export class VedroDetector {
      */
     public async detectVedro(): Promise<string | null> {
         this.logger.log('Detecting Vedro...');
-
+        
         // 1. First try user-configured vedro path
         const configuredPath = this.config.getVedroPath();
         if (configuredPath) {
@@ -25,28 +25,28 @@ export class VedroDetector {
             }
             this.logger.warn(`Configured vedro path doesn't work: ${configuredPath}`);
         }
-
+        
         // 2. Try to get Python from VS Code Python extension
         const pythonPath = await this.getPythonFromExtension();
         if (pythonPath) {
             const vedroCommand = `${pythonPath} -m vedro`;
             if (await this.verifyVedroCommand(vedroCommand)) {
                 this.logger.log(`✓ Using vedro from Python extension: ${vedroCommand}`);
-
+                
                 // Save it to config for future use
                 await this.config.setVedroPath(vedroCommand);
                 
                 return vedroCommand;
             }
         }
-
+        
         // 3. Try common defaults
         const defaults = [
-            'python -m vedro',
             'python3 -m vedro',
+            'python -m vedro',
             'vedro',  // In case vedro is in PATH
         ];
-
+        
         for (const command of defaults) {
             this.logger.log(`Trying default: ${command}`);
             if (await this.verifyVedroCommand(command)) {
@@ -58,7 +58,7 @@ export class VedroDetector {
                 return command;
             }
         }
-
+        
         this.logger.error('Could not find working vedro command');
         return null;
     }
@@ -69,7 +69,7 @@ export class VedroDetector {
     private async verifyVedroCommand(command: string): Promise<boolean> {
         const fullCommand = `${command} --version`;
         const result = await runCommand(fullCommand, this.config.getWorkspaceFolder());
-
+        
         if (result.success) {
             const output = result.stdout || result.stderr;
             // Check if output contains "Vedro" to ensure it's really vedro
@@ -87,7 +87,7 @@ export class VedroDetector {
     private async getPythonFromExtension(): Promise<string | null> {
         try {
             const pythonExtension = vscode.extensions.getExtension('ms-python.python');
-
+            
             if (!pythonExtension) {
                 this.logger.log('Python extension not found');
                 return null;
@@ -108,11 +108,11 @@ export class VedroDetector {
                         `${activeEnv.path}/bin/python`,
                         `${activeEnv.path}/Scripts/python.exe`,
                     ];
-
+                    
                     for (const pythonPath of possiblePaths) {
                         const result = await runCommand(
                             `${pythonPath} --version`, 
-                            this.config.getWorkspaceFolder()
+                            this.config.getWorkspaceFolder(),
                         );
                         if (result.success) {
                             this.logger.log(`Found Python from extension: ${pythonPath}`);
@@ -128,7 +128,7 @@ export class VedroDetector {
             if (interpreterPath) {
                 const result = await runCommand(
                     `${interpreterPath} --version`,
-                    this.config.getWorkspaceFolder()
+                    this.config.getWorkspaceFolder(),
                 );
                 if (result.success) {
                     return interpreterPath;
