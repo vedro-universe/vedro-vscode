@@ -25,7 +25,7 @@ export class TestExplorer {
         const relPath = path.relative(testRoot, file.fsPath);
 
         const content = await fs.readFile(file.fsPath, 'utf-8');
-        const classRegex = /class\s+(\w+)\(vedro.Scenario\):/g;
+        const classRegex = /class\s+(\w+)\(vedro\.Scenario\):/;
         content.split(os.EOL).forEach((line, index) => {
             const match = classRegex.exec(line);
             if (match) {
