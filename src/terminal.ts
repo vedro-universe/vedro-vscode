@@ -43,7 +43,7 @@ class Terminal {
 
     private showTerminal(): void {
         if (this.term) {
-            this.term.show(!!'preserveFocus');
+            this.term.show(true /* preserveFocus */);
         }
     }
 

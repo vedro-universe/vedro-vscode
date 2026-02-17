@@ -29,6 +29,16 @@
           "type": "string",
           "default": ".",
           "description": "Root directory for tests, relative to project root."
+        },
+        "vedro.debugOptions": {
+          "type": "string",
+          "default": "",
+          "description": "Options for `vedro run` command when debugging, e.g., `--dry-run`. If empty, `vedro.runOptions` will be used."
+        },
+        "vedro.debugPort": {
+          "type": "number",
+          "default": 5678,
+          "description": "Port for debugpy when debugging tests."
         }
       }
     },

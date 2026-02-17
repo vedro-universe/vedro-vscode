@@ -15,7 +15,14 @@ export async function activate(context: vscode.ExtensionContext) {
         testRunner.runTests(request, token);
         testRun.end();
     };
-    testController.createRunProfile('Run', vscode.TestRunProfileKind.Run, runHandler, !!'isDefault');
+    testController.createRunProfile('Run', vscode.TestRunProfileKind.Run, runHandler, true);
+
+    const debugHandler = async (request: vscode.TestRunRequest, token: vscode.CancellationToken) => {
+        const testRun = testController.createTestRun(request);
+        await testRunner.debugTests(request, token);
+        testRun.end();
+    };
+    testController.createRunProfile('Debug', vscode.TestRunProfileKind.Debug, debugHandler, false);
 
     const testExplorer = new TestExplorer(testController);
 
