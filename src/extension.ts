@@ -15,9 +15,13 @@ export async function activate(context: vscode.ExtensionContext) {
         testRunner.runTests(request, token);
         testRun.end();
     };
-    testController.createRunProfile('Run', vscode.TestRunProfileKind.Run, runHandler, !!'isDefault');
+    testController.createRunProfile('Run', vscode.TestRunProfileKind.Run, runHandler, true);
 
     const testExplorer = new TestExplorer(testController);
+
+    testController.resolveHandler = async () => {
+        await testExplorer.discoverAllInWorkspace();
+    };
 
     for (const document of vscode.workspace.textDocuments) {
         await testExplorer.discoverTests(document.uri);
