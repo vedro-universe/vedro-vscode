@@ -26,6 +26,10 @@ export async function activate(context: vscode.ExtensionContext) {
 
     const testExplorer = new TestExplorer(testController);
 
+    testController.resolveHandler = async () => {
+        await testExplorer.discoverAllInWorkspace();
+    };
+
     for (const document of vscode.workspace.textDocuments) {
         await testExplorer.discoverTests(document.uri);
     }
