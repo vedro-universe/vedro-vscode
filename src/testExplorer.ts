@@ -2,10 +2,23 @@ import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
 import vscode from 'vscode';
+import { getTestItemData, setTestItemData } from './testItemData';
+
+
+interface DiscoveredScenario {
+    className: string;
+    lineNumber: number;
+}
+
+interface TestItemParent {
+    collection: vscode.TestItemCollection;
+    item: vscode.TestItem | undefined;
+}
 
 
 export class TestExplorer {
     private testController: vscode.TestController;
+    private fileItems = new Map<string, vscode.TestItem>();
 
     constructor(testController: vscode.TestController) {
         this.testController = testController;
@@ -15,8 +28,8 @@ export class TestExplorer {
         if (file.scheme !== 'file' || !file.path.endsWith('.py') || !this.isUnderTestRoot(file)) {
             return;
         }
-        const testItems = await this.getTestItemsFromFile(file);
-        this.updateTestItems(file, testItems);
+        const scenarios = await this.getScenariosFromFile(file);
+        this.updateTestItems(file, scenarios);
     }
 
     /** Discover tests under vedro.testRoot. Used by resolveHandler when Test Explorer is opened. */
@@ -53,43 +66,147 @@ export class TestExplorer {
         }));
     }
 
-    private async getTestItemsFromFile(file: vscode.Uri): Promise<vscode.TestItem[]> {
-        let testItems: vscode.TestItem[] = [];
-
-        const testRoot = this.getTestRootFolder(file);
-        const relPath = path.relative(testRoot, file.fsPath);
-
+    private async getScenariosFromFile(file: vscode.Uri): Promise<DiscoveredScenario[]> {
+        const scenarios: DiscoveredScenario[] = [];
         const content = await fs.readFile(file.fsPath, 'utf-8');
         const classRegex = /class\s+(\w+)\(vedro\.Scenario\):/;
         content.split(os.EOL).forEach((line, index) => {
             const match = classRegex.exec(line);
             if (match) {
-                const className = match[1];
-                testItems.push(this.createTestItem(file, relPath, className, index));
+                scenarios.push({ className: match[1], lineNumber: index });
             }
         });
 
-        return testItems;
+        return scenarios;
     }
 
-    private createTestItem(file: vscode.Uri, relPath: string, className: string, lineNumber: number): vscode.TestItem {
-        const uniqueId = `${relPath}::${className}`;
-
-        const basename = path.basename(file.fsPath, path.extname(file.fsPath));
-        const label = `${basename}::${className}`;
-
-        const testItem = this.testController.createTestItem(uniqueId, label, file);
-        testItem.range = new vscode.Range(lineNumber, 0, lineNumber, 0);
+    private createScenarioItem(
+        file: vscode.Uri,
+        rootId: string,
+        testRoot: string,
+        relPath: string,
+        scenario: DiscoveredScenario,
+    ): vscode.TestItem {
+        const selector = `${relPath}::${scenario.className}`;
+        const testItem = this.testController.createTestItem(
+            `scenario:${rootId}:${selector}`,
+            scenario.className,
+            file,
+        );
+        testItem.range = new vscode.Range(scenario.lineNumber, 0, scenario.lineNumber, 0);
+        testItem.sortText = `2:${scenario.className}`;
+        setTestItemData(testItem, { kind: 'scenario', selector, workDir: testRoot });
         return testItem;
     }
 
-    private updateTestItems(file: vscode.Uri, testItems: vscode.TestItem[]): void {
-        this.testController.items.forEach(item => {
-            if (item.uri?.fsPath === file.fsPath) {
-                this.testController.items.delete(item.id);
+    private updateTestItems(file: vscode.Uri, scenarios: DiscoveredScenario[]): void {
+        const existingFileItem = this.fileItems.get(file.fsPath);
+        if (scenarios.length === 0) {
+            if (existingFileItem) {
+                this.removeFileItem(existingFileItem);
             }
-        });
-        testItems.forEach(item => this.testController.items.add(item));
+            return;
+        }
+
+        const testRoot = this.getTestRootFolder(file);
+        const rootId = vscode.Uri.file(testRoot).toString();
+        const relPath = this.normalizePath(path.relative(testRoot, file.fsPath));
+        const directoryPath = path.posix.dirname(relPath);
+        const treeRoot = this.ensureWorkspaceRoot(file, rootId, testRoot);
+        const parent = this.ensureDirectoryPath(testRoot, rootId, directoryPath, treeRoot);
+        const fileId = `file:${rootId}:${relPath}`;
+
+        if (existingFileItem && existingFileItem.parent !== parent.item) {
+            this.removeFileItem(existingFileItem);
+        }
+
+        let fileItem = parent.collection.get(fileId);
+        if (!fileItem) {
+            fileItem = this.testController.createTestItem(fileId, path.posix.basename(relPath), file);
+            fileItem.sortText = `1:${fileItem.label}`;
+            parent.collection.add(fileItem);
+        }
+        setTestItemData(fileItem, { kind: 'file', selector: relPath, workDir: testRoot });
+        fileItem.children.replace(
+            scenarios.map(scenario => this.createScenarioItem(file, rootId, testRoot, relPath, scenario)),
+        );
+        this.fileItems.set(file.fsPath, fileItem);
+    }
+
+    private ensureWorkspaceRoot(file: vscode.Uri, rootId: string, testRoot: string): TestItemParent {
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(file);
+        if (!workspaceFolder) {
+            return { collection: this.testController.items, item: undefined };
+        }
+
+        const workspaceId = `workspace:${rootId}`;
+        let workspaceItem = this.testController.items.get(workspaceId);
+        if (!workspaceItem) {
+            workspaceItem = this.testController.createTestItem(
+                workspaceId,
+                workspaceFolder.name,
+                workspaceFolder.uri,
+            );
+            workspaceItem.sortText = `0:${workspaceItem.label}`;
+            setTestItemData(workspaceItem, { kind: 'workspace', selector: '.', workDir: testRoot });
+            this.testController.items.add(workspaceItem);
+        }
+
+        return { collection: workspaceItem.children, item: workspaceItem };
+    }
+
+    private ensureDirectoryPath(
+        testRoot: string,
+        rootId: string,
+        directoryPath: string,
+        treeRoot: TestItemParent,
+    ): TestItemParent {
+        let collection = treeRoot.collection;
+        let parent = treeRoot.item;
+
+        if (directoryPath === '.') {
+            return { collection, item: parent };
+        }
+
+        const segments = directoryPath.split('/');
+        for (let index = 0; index < segments.length; index++) {
+            const selector = segments.slice(0, index + 1).join('/');
+            const directoryId = `directory:${rootId}:${selector}`;
+            let directoryItem = collection.get(directoryId);
+            if (!directoryItem) {
+                const directoryUri = vscode.Uri.file(path.join(testRoot, ...segments.slice(0, index + 1)));
+                directoryItem = this.testController.createTestItem(directoryId, segments[index], directoryUri);
+                directoryItem.sortText = `0:${directoryItem.label}`;
+                setTestItemData(directoryItem, { kind: 'directory', selector, workDir: testRoot });
+                collection.add(directoryItem);
+            }
+            parent = directoryItem;
+            collection = directoryItem.children;
+        }
+
+        return { collection, item: parent };
+    }
+
+    private removeFileItem(fileItem: vscode.TestItem): void {
+        const parent = fileItem.parent;
+        const collection = parent?.children ?? this.testController.items;
+        collection.delete(fileItem.id);
+        this.fileItems.delete(fileItem.uri?.fsPath ?? '');
+        this.pruneEmptyDirectories(parent);
+    }
+
+    private pruneEmptyDirectories(item: vscode.TestItem | undefined): void {
+        let current = item;
+        while (current && current.children.size === 0 && getTestItemData(current)?.kind === 'directory') {
+            const parent = current.parent;
+            const collection = parent?.children ?? this.testController.items;
+            collection.delete(current.id);
+            current = parent;
+        }
+    }
+
+    private normalizePath(filePath: string): string {
+        return filePath.replace(/\\/g, '/');
     }
 
     private getTestRootFolder(file: vscode.Uri): string {

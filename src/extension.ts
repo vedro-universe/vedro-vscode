@@ -8,6 +8,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(testController);
 
     const terminal = new Terminal('vedro-runner');
+    context.subscriptions.push(terminal);
     const testRunner = new TestRunner(terminal);
 
     const runHandler = (request: vscode.TestRunRequest, token: vscode.CancellationToken) => {

@@ -1,17 +1,31 @@
 import vscode from 'vscode';
 
-class Terminal {
+class Terminal implements vscode.Disposable {
     private name: string;
     private term: vscode.Terminal | null = null;
-    private opened: boolean = false;
+    private workDir: string | null = null;
+    private closeListener: vscode.Disposable;
 
     constructor(name: string) {
         this.name = name;
+        this.closeListener = vscode.window.onDidCloseTerminal(term => {
+            if (term === this.term) {
+                this.term = null;
+                this.workDir = null;
+            }
+        });
     }
 
     public runCmd(cmd: string, workDir: string): void {
+        if (this.term && this.workDir !== workDir) {
+            const previousTerm = this.term;
+            this.term = null;
+            this.workDir = null;
+            previousTerm.dispose();
+        }
         if (!this.term) {
             this.term = this.createTerminal(workDir);
+            this.workDir = workDir;
         }
         this.showTerminal();
         this.clearTerminal();
@@ -19,26 +33,10 @@ class Terminal {
     }
 
     private createTerminal(workDir: string): vscode.Terminal {
-        const terminal = vscode.window.createTerminal(this.name);
-        if (workDir && workDir !== '.') {
-            terminal.sendText(`cd "${workDir}"`);
-        }
-
-        vscode.window.onDidOpenTerminal((term: vscode.Terminal) => {
-            if (term.name === this.name) {
-                this.opened = true;
-            }
+        return vscode.window.createTerminal({
+            name: this.name,
+            cwd: workDir,
         });
-
-        vscode.window.onDidCloseTerminal((term: vscode.Terminal) => {
-            if (term.name === this.name) {
-                this.term?.dispose();
-                this.term = null;
-                this.opened = false;
-            }
-        });
-
-        return terminal;
     }
 
     private showTerminal(): void {
@@ -53,11 +51,15 @@ class Terminal {
 
     private executeCmd(cmd: string) {
         // Change to https://github.com/microsoft/vscode-python/wiki/Python-Environment-APIs
-        if (this.opened) {
-            this.term?.sendText(cmd);
-        } else {
-            setTimeout(() => this.executeCmd(cmd), 200);
-        }
+        this.term?.sendText(cmd);
+    }
+
+    public dispose(): void {
+        const terminal = this.term;
+        this.term = null;
+        this.workDir = null;
+        this.closeListener.dispose();
+        terminal?.dispose();
     }
 }
 
